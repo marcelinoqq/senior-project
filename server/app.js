@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const chalk = require("chalk");
 
 const authRouter = require("./routes/auth");
 const categoryRouter = require("./routes/categories");
@@ -14,26 +15,44 @@ const orderRouter = require("./routes/orders");
 const usersRouter = require("./routes/users");
 const customizeRouter = require("./routes/customize");
 
-const PORT = process.env.PORT || 8000;
+const port = process.env.PORT;
+const uri = process.env.URI;
 
 const createFolder = require("./config/upload");
 
 createFolder();
 
-try {
-  mongoose
-    .connect(process.env.DATABASE, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      useCreateIndex: true,
-    })
-    .then(() => console.log("\x1b[32mDATABASE CONNECTED\x1b[0m"));
-  app.listen(PORT, () => {
-    console.log("Server is running on", PORT);
+const startServer = () => {
+  const server = app.listen(port, () => {
+    console.log(chalk.green(`Server is running on http://localhost:${port}/`));
   });
-} catch (error) {
-  throw new Error(error);
-}
+
+  server.on("error", (error) => {
+    console.error(chalk.red("Server failed to start:"), error);
+  });
+};
+
+const connectToDB = async () => {
+  try {
+    await mongoose.connect(uri);
+    console.log(chalk.green("DB CONNECTED!"));
+  } catch (error) {
+    console.error(chalk.red("DB NOT CONNECTED"), error);
+    throw error;
+  }
+};
+
+const init = async () => {
+  try {
+    await connectToDB();
+    startServer();
+  } catch (err) {
+    console.error(chalk.red("Startup failed."));
+    process.exit(1);
+  }
+};
+
+init();
 
 // Middleware
 app.use(morgan("dev"));
